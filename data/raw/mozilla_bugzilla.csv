@@ -1,0 +1,4 @@
+bug_id,summary,description,resolution_status,operating_system,architecture,component_type
+1001,Browser crashes when opening preferences,"Opening Preferences after updating causes an immediate crash on Windows.",UNRESOLVED,Windows,x86_64,Preferences
+1002,Crash on preferences window,"The application exits unexpectedly when the preferences dialog is opened after upgrade.",DUPLICATE,Windows,x86_64,Preferences
+1003,Page rendering issue on Linux,"Images intermittently overlap text after resizing the browser window.",UNRESOLVED,Linux,x86_64,Layout

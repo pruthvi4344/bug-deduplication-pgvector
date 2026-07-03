@@ -1,1 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
 
+# Generated data and model artifacts
+data/raw/*.csv
+!data/raw/mozilla_bugzilla.csv
+data/processed/*.csv
+data/processed/*.jsonl
+models/
+
+# Runtime outputs
+benchmark/logs/*.log
+benchmark/results/*.json
