@@ -12,3 +12,6 @@ CREATE TABLE bug_reports (
     reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     description_embedding vector(384)
 );
+
+
+
