@@ -1,0 +1,22 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: bugdedup
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/production_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/production_indexes.sql:/docker-entrypoint-initdb.d/02-indexes.sql:ro
+  api:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    environment: {DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/bugdedup}
+    ports: ["8000:8000"]
+    depends_on: [db]
+  web:
+    build: ./frontend
+    ports: ["5173:80"]
+    depends_on: [api]
+volumes: {postgres_data: {}}
