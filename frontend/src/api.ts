@@ -1,0 +1,5 @@
+export type Result={bug:{id:number;summary:string;description:string;product?:string;component?:string;resolution_status:string};similarity:number}; export type Bench={id:number;index_type:string;k:number;queries_evaluated:number;recall_at_1:number;recall_at_5:number;recall_at_10:number;average_latency_ms:number;p95_latency_ms:number;created_at:string};
+const API=import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+async function request<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch(API+path,init);if(!r.ok)throw new Error((await r.json().catch(()=>({detail:r.statusText}))).detail);return r.json()}
+export const api={search:(body:object)=>request<Result[]>('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),history:()=>request<Bench[]>('/api/benchmarks'),benchmark:(body:object)=>request<Bench>('/api/benchmarks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),upload:(file:File)=>{const f=new FormData();f.append('file',file);return request<{imported:number}>('/api/bugs/import',{method:'POST',body:f})}};
+

@@ -1,0 +1,2 @@
+{"name":"bug-dedup-ui","private":true,"version":"1.0.0","type":"module","scripts":{"dev":"vite","build":"tsc -b && vite build","lint":"tsc -b --noEmit"},"dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},"devDependencies":{"tailwindcss":"latest","@tailwindcss/vite":"latest","@types/react":"latest","@types/react-dom":"latest"}}
+
