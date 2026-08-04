@@ -1,0 +1,200 @@
+% D.4.4 Deployment Document -- Overleaf / IEEEtran source
+% Replace author and deployment-role information before submission.
+\documentclass[conference]{IEEEtran}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
+\definecolor{codegray}{RGB}{245,245,245}
+\lstset{basicstyle=\ttfamily\footnotesize,backgroundcolor=\color{codegray},frame=single,breaklines=true}
+% REQUIRED FINAL EDITS
+\newcommand{\memberone}{\textit{[Member 1 name, student ID, UWindsor email]}}
+\newcommand{\membertwo}{\textit{[Member 2 name, student ID, UWindsor email]}}
+\newcommand{\memberthree}{\textit{[Member 3 name, student ID, UWindsor email]}}
+\newcommand{\memberfour}{\textit{[Member 4 name, student ID, UWindsor email]}}
+\newcommand{\repo}{\url{https://github.com/pruthvi4344/bug-deduplication-pgvector}}
+
+\begin{document}
+\title{Deployment Document: AI Bug Deduplication System using PostgreSQL pgvector}
+\author{\IEEEauthorblockN{\memberone \and \membertwo \and \memberthree \and \memberfour}
+\IEEEauthorblockA{Master of Applied Computing, University of Windsor, Windsor, Canada}}
+\maketitle
+
+\begin{abstract}
+This document specifies the deployment procedure for version 1.0.0 of the AI Bug Deduplication System using PostgreSQL pgvector. The system imports Bugzilla-style reports, generates 384-dimensional sentence embeddings with \texttt{all-MiniLM-L6-v2}, persists them in PostgreSQL with pgvector, and identifies likely duplicates using cosine-similarity retrieval. It defines pre-deployment prerequisites, the Docker Compose execution procedure, database initialization and index configuration, post-deployment health checks, observed verification results, and incident/rollback actions. The verified target environment is a local Docker-based deployment suitable for course demonstration and grading.
+\end{abstract}
+\begin{IEEEkeywords}
+deployment, Docker Compose, FastAPI, PostgreSQL, pgvector, HNSW, IVFFlat, health checks, rollback
+\end{IEEEkeywords}
+
+\section{Pre-Deployment \& Environment Setup}
+\subsection{System Overview}
+The AI Bug Deduplication System is a full-stack web application for semantic duplicate-bug retrieval. Its React dashboard enables Bugzilla CSV import, duplicate search, benchmark execution, and review of stored metrics. The FastAPI backend cleans text, produces MiniLM embeddings, and executes vector search through PostgreSQL. The database keeps the report data, 384-dimensional vector embeddings, vector indexes, and benchmark history. Table~\ref{tab:overview} summarizes the deployed release.
+
+\begin{table}[!t]
+\caption{System overview}
+\label{tab:overview}
+\centering
+\begin{tabular}{p{.31\columnwidth}p{.57\columnwidth}}
+\toprule
+\textbf{Attribute} & \textbf{Value}\\
+\midrule
+Application name & AI Bug Deduplication System (BugVector AI)\\
+Version & 1.0.0\\
+Target environment & Local Docker Compose deployment / course grading\\
+Runtime & Python 3.12, Node.js build image, NGINX web server\\
+Backend & FastAPI, Uvicorn, SQLAlchemy, psycopg3, Pydantic\\
+Frontend & React, TypeScript, Vite, Tailwind CSS\\
+Database & PostgreSQL 16 with pgvector\\
+Vector model & sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)\\
+Access methods & Exact cosine, HNSW, IVFFlat\\
+Deployment type & Self-hosted local containers\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Prerequisites}
+\subsubsection{Hardware Requirements}
+\begin{itemize}
+\item Minimum four logical CPU cores and 8 GB RAM; 16 GB is recommended when importing/embedding larger datasets.
+\item At least 5 GB free disk space for Docker images, the PostgreSQL volume, cached sentence-transformer model, data files, and backups.
+\item A stable internet connection for the first Docker image pulls and first MiniLM model download.
+\end{itemize}
+
+\subsubsection{Operating System Configuration}
+The verified deployment target is Windows 10/11 with Docker Desktop running. Linux and macOS Docker installations are also compatible with the Compose configuration. Docker Compose v2 must be available. The host ports 5173 (dashboard), 8000 (API), and 5432 (PostgreSQL) must be unused. A separately installed native PostgreSQL server is not required because Docker supplies PostgreSQL 16 and pgvector.
+
+\subsubsection{SSL Certificates}
+The submitted application is a local Docker deployment accessed on \texttt{localhost}; HTTP is used and no SSL certificate is needed for this course environment. A public production deployment must terminate HTTPS at a reverse proxy, use a valid TLS certificate with automated renewal, restrict CORS origins, and configure encrypted database connections whenever PostgreSQL is accessed across a network.
+
+\subsection{Access \& Roles}
+Deployment approval should be recorded by the four-person team after each member validates the modules assigned to them in the project-management workspace. Replace the names in Table~\ref{tab:roles} with the actual group members before final submission.
+
+\begin{table}[!t]
+\caption{Deployment team and sign-off responsibilities}
+\label{tab:roles}
+\centering
+\begin{tabular}{p{.27\columnwidth}p{.27\columnwidth}p{.34\columnwidth}}
+\toprule
+\textbf{Member} & \textbf{Deployment role} & \textbf{Sign-off responsibility}\\
+\midrule
+\textit{[Member 1]} & Database and pgvector owner & Schema, pgvector extension, HNSW/IVFFlat indexes, backup verification.\\
+\textit{[Member 2]} & Backend and AI owner & FastAPI health/API endpoints, text cleaning, embedding generation, errors/logs.\\
+\textit{[Member 3]} & Frontend and dashboard owner & Dashboard reachability, CSV import interface, responsive views, and user-facing error messages.\\
+\textit{[Member 4]} & Testing, benchmarking, and documentation owner & Benchmark metrics, test evidence, deployment records, user documentation, and final report review.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Execution \& Post-Deployment Log}
+\subsection{Step-by-Step Actions}
+All commands below are executed from the cloned repository root. The repository is the authoritative deployment artifact: \repo.
+
+\subsubsection{1) Obtain the application and start Docker Desktop}
+Clone the repository, open a PowerShell terminal in the project folder, and confirm Docker Desktop is running.
+\begin{lstlisting}[language=bash]
+git clone https://github.com/pruthvi4344/bug-deduplication-pgvector.git
+cd bug-deduplication-pgvector
+\end{lstlisting}
+
+\subsubsection{2) Build and launch the complete application}
+\begin{lstlisting}[language=bash]
+docker compose up --build
+\end{lstlisting}
+This command builds the backend and frontend images, starts PostgreSQL 16 with pgvector, runs the database initialization scripts on the first empty volume, launches FastAPI on port 8000, and serves the React dashboard on port 5173. The initial model request can take longer while MiniLM is downloaded and loaded.
+
+\subsubsection{3) Verify service reachability}
+Open the following URLs after the containers are healthy:
+\begin{itemize}
+\item Dashboard: \url{http://localhost:5173}
+\item API health: \url{http://localhost:8000/health}
+\item API documentation: \url{http://localhost:8000/docs}
+\end{itemize}
+The health endpoint must return \texttt{\{"status":"ok"\}}. Container output is monitored using \texttt{docker compose logs -f api}, \texttt{docker compose logs -f db}, or \texttt{docker compose logs -f web}.
+
+\subsubsection{4) Import Bugzilla data}
+Use the Home page to upload a CSV containing at minimum a non-empty \texttt{summary}. The expected columns are \texttt{bug\_id}, \texttt{summary}, \texttt{description}, \texttt{product}, \texttt{component}, \texttt{resolution\_status}, \texttt{operating\_system}, and \texttt{architecture}. The verified deployment imported the repository seed dataset and 100 public Firefox reports from Mozilla Bugzilla's REST API, producing 103 stored reports.
+
+\subsubsection{5) Verify database rows and embeddings}
+\begin{lstlisting}[language=bash]
+docker compose exec db psql -U postgres -d bugdedup -c "SELECT COUNT(*) AS total_bug_reports, COUNT(*) FILTER (WHERE vector_dims(embedding) = 384) AS valid_384d_embeddings FROM bug_reports;"
+\end{lstlisting}
+The verified result was 103 total reports and 103 valid 384-dimensional embeddings.
+
+\subsubsection{6) Rebuild IVFFlat after bulk data import}
+IVFFlat should be built after loading representative data. For the verified approximately 100-row collection, ten lists were used:
+\begin{lstlisting}[language=bash]
+docker compose exec db psql -U postgres -d bugdedup -c "DROP INDEX IF EXISTS idx_bug_ivfflat; CREATE INDEX idx_bug_ivfflat ON bug_reports USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10); ANALYZE bug_reports;"
+\end{lstlisting}
+
+\subsubsection{7) Create a recovery backup}
+\begin{lstlisting}[language=bash]
+mkdir backups
+docker compose exec -T db pg_dump -U postgres bugdedup > backups/bugdedup_backup.sql
+\end{lstlisting}
+On Windows PowerShell, use \texttt{Set-Content -Encoding utf8} if a shell-specific redirection encoding issue occurs. Store the resulting SQL backup outside the repository or in a protected location.
+
+\subsection{Verification \& Health Checks}
+Table~\ref{tab:checks} lists the required post-launch checks. The observed values establish that the complete application, database, embedding module, API, and ANN index deployment are functional.
+
+\begin{table*}[!t]
+\caption{Post-deployment verification and observed results}
+\label{tab:checks}
+\centering
+\begin{tabular}{p{.23\textwidth}p{.35\textwidth}p{.31\textwidth}}
+\toprule
+\textbf{Check} & \textbf{Method} & \textbf{Pass criterion / observed result}\\
+\midrule
+Web dashboard & Browse \url{http://localhost:5173} & Home, Search, Benchmarks, and About pages load.\\
+API health & Browse \url{http://localhost:8000/health} & HTTP 200 and \texttt{\{"status":"ok"\}}.\\
+API interface & Browse \url{http://localhost:8000/docs} & OpenAPI page lists import, search, and benchmark endpoints.\\
+Data import & Upload Bugzilla CSV through dashboard & 100 Firefox reports imported after seed records.\\
+Embedding validity & Execute \texttt{vector\_dims(embedding)} count query & 103 reports; 103 valid 384-dimensional vectors.\\
+Duplicate retrieval & Search preferences-crash query & Top result: seeded preferences-crash report; similarity 95.53\%.\\
+ANN indexes & Query \texttt{pg\_indexes} & HNSW, IVFFlat, hybrid product/component, and status indexes exist.\\
+HNSW benchmark & Run dashboard benchmark on 20 sampled queries & Recall@1/@5/@10 = 100\%; average 13.68 ms; p95 17.70 ms.\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Error monitoring is performed through Docker logs and API responses. A failed service, model download failure, database-connection failure, or HTTP 5xx response must be inspected with the service logs before reattempting a bulk operation. In a managed production deployment, centralized application logs, PostgreSQL logs, alerting on HTTP 5xx rates, and resource monitoring should be configured.
+
+\subsection{Incident \& Rollback Log}
+Table~\ref{tab:log} records the verified deployment events. It should be updated by the team if new deployment incidents occur. The duplicate external-ID event was handled correctly by the database unique constraint; it did not corrupt data and did not require a rollback.
+
+\begin{table}[!t]
+\caption{Deployment execution log (verified local deployment)}
+\label{tab:log}
+\centering
+\begin{tabular}{p{.17\columnwidth}p{.56\columnwidth}p{.16\columnwidth}}
+\toprule
+\textbf{Time} & \textbf{Event} & \textbf{Owner}\\
+\midrule
+23 Jul & Docker Compose build and launch completed; dashboard, API, and OpenAPI reachable. & Team\\
+23 Jul & Seed dataset verified; initial HNSW search and benchmark passed. & Team\\
+23 Jul & 100 public Firefox Bugzilla reports imported; total reached 103. & Team\\
+23 Jul & Embedding validation query returned 103 valid vectors with dimension 384. & Team\\
+23 Jul & IVFFlat rebuilt after import with \texttt{lists=10}; database analyzed. & Team\\
+23 Jul & HNSW benchmark completed: 20 queries, 100\% Recall@1/@5/@10, 13.68 ms average latency. & Team\\
+23 Jul & Duplicate external-ID import attempt rejected safely; no data change required. & Team\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Rollback Procedure}
+\begin{enumerate}
+\item Stop the application safely with \texttt{docker compose down}. This does not remove the persistent PostgreSQL volume.
+\item If only application code/configuration changed, restore the previous known-good Git commit and restart with \texttt{docker compose up --build}.
+\item If a data or schema change caused the incident, preserve logs, stop the containers, and restore the latest known-good SQL backup into PostgreSQL using \texttt{psql}.
+\item Rebuild required indexes after a restore, especially IVFFlat after a bulk data load, then run \texttt{ANALYZE bug\_reports}.
+\item Re-run the health, row-count/vector-dimension, search, and benchmark checks in Table~\ref{tab:checks} before reopening the application.
+\item Record the root cause, recovery time, data impact, and sign-off in Table~\ref{tab:log}.
+\end{enumerate}
+
+\section{Deployment Status}
+The local Docker deployment has been successfully verified. The working release includes a reachable dashboard, FastAPI health endpoint and OpenAPI documentation, PostgreSQL pgvector storage, valid 384-dimensional embeddings, HNSW/IVFFlat indexes, duplicate search, persisted benchmarks, and a database backup procedure. It is ready for local course demonstration and reproducible grading through the public repository.
+
+\end{document}
