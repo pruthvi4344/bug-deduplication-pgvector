@@ -33,7 +33,7 @@ REQUIRED_COLUMNS = (
 )
 
 
-def clean_text(value: object) -> str:
+def clean_text(value: Any) -> str:
     """Return normalized text safe for downstream embedding models."""
     if value is None or pd.isna(value):
         return ""
@@ -46,7 +46,7 @@ def clean_text(value: object) -> str:
     return text.strip()
 
 
-def normalize_bug_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def normalize_bug_dataframe(df: DataFrame) -> DataFrame:
     """Clean a raw Bugzilla dataframe and add an embedding-ready text column."""
     missing = [column for column in REQUIRED_COLUMNS if column not in df.columns]
     if missing:
@@ -74,7 +74,7 @@ def normalize_bug_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return cleaned.reset_index(drop=True)
 
 
-def clean_dataset(input_path: Path = DEFAULT_INPUT, output_path: Path = DEFAULT_OUTPUT) -> Path:
+def clean_dataset(input_path: Optional[Path] = DEFAULT_INPUT, output_path: Optional[Path] = DEFAULT_OUTPUT) -> Optional[Path]:
     """Read a raw CSV, clean it, and write the processed CSV."""
     df = pd.read_csv(input_path)
     cleaned = normalize_bug_dataframe(df)
