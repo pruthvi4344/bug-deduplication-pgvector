@@ -18,6 +18,7 @@ from .schemas import BugCreate, QueryPlanOut, SearchRequest
 
 def clean_text(value: str) -> str:
     """Normalize text consistently before import and search."""
+    """Normalize text consistently before import and search."""
     return re.sub(r'\s+', ' ', re.sub(r'<[^>]*>|https?://\S+', ' ', html.unescape(value))).strip()
 
 @lru_cache
