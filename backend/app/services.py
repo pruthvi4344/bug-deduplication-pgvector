@@ -36,7 +36,8 @@ from .models import BenchmarkRun, BugReport
 from .schemas import BugCreate, QueryPlanOut, SearchRequest
 
 def clean_text(value: str) -> str:
-    """Normalize text consistently before import and search. This function removes extra spaces and strips HTML and URLs from the text. It also unescapes HTML entities."""
+
+  
     return re.sub(r'\s+', ' ', re.sub(r'<[^>]*>|https?://\S+', ' ', html.unescape(value))).strip()
 
 @lru_cache
